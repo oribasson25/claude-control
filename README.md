@@ -75,11 +75,15 @@ Three things change when it goes online, and all three are load-bearing.
 
 **1. State moves to Upstash.** Serverless functions are separate processes with
 no shared memory, so an in-process cache would lose a session between the hook
-that created it and the poll that reads it. Install the Upstash Redis integration
-from the Vercel Marketplace; it injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`
-and the app switches backends on its own. Upstash speaks HTTP rather than the
+that created it and the poll that reads it. Upstash speaks HTTP rather than the
 Redis wire protocol, which is what makes it usable from a function that cannot
 hold a socket open.
+
+Either attach it through the Vercel Marketplace, which injects `KV_REST_API_URL`
+and `KV_REST_API_TOKEN` for you, or create a database on Upstash directly and
+paste its `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` into Vercel.
+Both name the same pair of values and the app accepts either, switching backends
+on its own.
 
 **2. Auth becomes mandatory.** Configure at least one OAuth provider:
 

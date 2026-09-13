@@ -22,9 +22,20 @@ export interface KV {
   incrWithTtl(key: string, ttlSeconds: number): Promise<number>;
 }
 
-export const usingUpstash = Boolean(
-  process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN,
-);
+/**
+ * Upstash credentials arrive under two different names depending on how the
+ * database was attached: the Vercel Marketplace integration injects
+ * `KV_REST_API_*`, while a database created on Upstash directly gives you
+ * `UPSTASH_REDIS_REST_*`. Both are the same pair of values, so accept either
+ * rather than making people rename them.
+ */
+export function upstashCredentials(): { url: string; token: string } | null {
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
+export const usingUpstash = upstashCredentials() !== null;
 
 let cached: KV | null = null;
 

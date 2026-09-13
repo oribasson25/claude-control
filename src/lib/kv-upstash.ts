@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis";
-import type { KV } from "./kv";
+import { upstashCredentials, type KV } from "./kv";
 
 /**
  * Upstash speaks HTTP rather than the Redis wire protocol, which is why it works
@@ -9,9 +9,11 @@ import type { KV } from "./kv";
  * (de)serialization, so a value round-trips identically on both backends.
  */
 export function createUpstashKV(): KV {
+  const credentials = upstashCredentials();
+  if (!credentials) throw new Error("Upstash credentials are not configured.");
+
   const redis = new Redis({
-    url: process.env.KV_REST_API_URL!,
-    token: process.env.KV_REST_API_TOKEN!,
+    ...credentials,
     automaticDeserialization: false,
   });
 
