@@ -5,10 +5,19 @@ import type { KV } from "./kv";
 /**
  * Local-development backend: the whole key space in one JSON file.
  *
- * Every operation is a read-modify-write of that file. That is wasteful, but at
- * the scale this runs at locally (a handful of sessions, one user) it is
- * irrelevant, and it keeps state correct across Next.js's separate dev workers —
- * which an in-memory Map would not.
+ * Every mutation is a read-modify-write of that file, which is wasteful but
+ * irrelevant at the scale this runs at locally. It is also, without care, wrong:
+ * the dashboard polls every 1.5s and those polls write too (pruning dead index
+ * entries), so a poll that read the file before a device was minted would write
+ * its stale snapshot back over it and silently erase the new token.
+ *
+ * So every mutation holds an exclusive lock for its whole read-modify-write
+ * cycle — a lock file, because Next.js serves requests from more than one
+ * process and an in-process mutex alone would not see the others. Reads need no
+ * lock: writes land via rename, so a reader always sees a complete file.
+ *
+ * Upstash needs none of this. Its operations are atomic server-side, with no
+ * global blob to lose a write into.
  */
 
 interface Snapshot {
@@ -25,7 +34,66 @@ const DATA_DIR = process.env.CLAUDE_CONTROL_DATA_DIR
   : path.join(process.cwd(), ".claude-control-data");
 const FILE = path.join(DATA_DIR, "store.json");
 
+const LOCK = `${FILE}.lock`;
+
+/** How long to wait for another holder before giving up. */
+const LOCK_TIMEOUT_MS = 5000;
+/** A lock older than this belonged to a process that died; take it. */
+const LOCK_STALE_MS = 10_000;
+
 const EMPTY: Snapshot = { kv: {}, z: {}, exp: {} };
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function acquireLock(): Promise<number> {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const deadline = Date.now() + LOCK_TIMEOUT_MS;
+
+  for (;;) {
+    try {
+      // "wx" fails if the file exists, which is what makes this a lock.
+      return fs.openSync(LOCK, "wx");
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code !== "EEXIST") throw cause;
+
+      try {
+        if (Date.now() - fs.statSync(LOCK).mtimeMs > LOCK_STALE_MS) {
+          fs.rmSync(LOCK, { force: true });
+          continue;
+        }
+      } catch {
+        // The holder released it between our open and our stat; just retry.
+      }
+
+      if (Date.now() > deadline) {
+        throw new Error(`Timed out waiting for the store lock at ${LOCK}.`);
+      }
+      await sleep(5 + Math.random() * 20);
+    }
+  }
+}
+
+function releaseLock(handle: number): void {
+  try {
+    fs.closeSync(handle);
+  } catch {
+    // Already closed.
+  }
+  fs.rmSync(LOCK, { force: true });
+}
+
+/**
+ * In-process serialization, so concurrent requests in one worker queue up
+ * instead of spinning against each other on the file lock.
+ */
+let chain: Promise<unknown> = Promise.resolve();
+
+function serialize<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(fn, fn);
+  // Keep the chain alive regardless of how this link settles.
+  chain = run.catch(() => undefined);
+  return run;
+}
 
 function read(): Snapshot {
   try {
@@ -55,15 +123,26 @@ function sweep(snap: Snapshot): void {
   }
 }
 
-/** Runs `fn` against a freshly-swept snapshot and persists the result. */
-function mutate<T>(fn: (snap: Snapshot) => T): T {
-  const snap = read();
-  sweep(snap);
-  const result = fn(snap);
-  write(snap);
-  return result;
+/**
+ * Runs `fn` against a freshly-swept snapshot and persists the result, holding
+ * the lock across the whole cycle so no concurrent writer can clobber it.
+ */
+function mutate<T>(fn: (snap: Snapshot) => T): Promise<T> {
+  return serialize(async () => {
+    const handle = await acquireLock();
+    try {
+      const snap = read();
+      sweep(snap);
+      const result = fn(snap);
+      write(snap);
+      return result;
+    } finally {
+      releaseLock(handle);
+    }
+  });
 }
 
+/** Reads need no lock: `write` renames into place, so the file is never torn. */
 function query<T>(fn: (snap: Snapshot) => T): T {
   const snap = read();
   sweep(snap);
@@ -85,7 +164,7 @@ export function createFileKV(): KV {
     },
 
     async set<T>(key: string, value: T, ttlSeconds?: number) {
-      mutate((s) => {
+      await mutate((s) => {
         s.kv[key] = JSON.stringify(value);
         if (ttlSeconds) s.exp[key] = Date.now() + ttlSeconds * 1000;
         else delete s.exp[key];
@@ -93,7 +172,7 @@ export function createFileKV(): KV {
     },
 
     async del(key: string) {
-      mutate((s) => {
+      await mutate((s) => {
         delete s.kv[key];
         delete s.exp[key];
       });
@@ -115,13 +194,13 @@ export function createFileKV(): KV {
     },
 
     async zadd(key: string, score: number, member: string) {
-      mutate((s) => {
+      await mutate((s) => {
         (s.z[key] ??= {})[member] = score;
       });
     },
 
     async zrem(key: string, member: string) {
-      mutate((s) => {
+      await mutate((s) => {
         if (s.z[key]) delete s.z[key][member];
       });
     },

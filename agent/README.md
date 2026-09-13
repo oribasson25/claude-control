@@ -9,13 +9,26 @@ since Claude Code has no inbound API.
 
 ## Use
 
+This package is not published to npm. Run it from a checkout:
+
 ```bash
-npx claude-control-agent init --server https://your-app.vercel.app --token ccd_…
+node agent/bin/claude-control-agent.js init \
+  --server https://your-app.vercel.app --token ccd_…
+```
+
+Or install the command onto your PATH once, and use `claude-control-agent`
+directly from then on:
+
+```bash
+cd agent && npm link
 ```
 
 That verifies the token, saves it to `~/.claude-control/config.json` (mode 0600),
 merges the reporting hooks into `~/.claude/settings.json`, and registers the relay
 to run in the background — a LaunchAgent on macOS, a systemd user unit on Linux.
+
+Commands (shown as the linked `claude-control-agent`; prefix with
+`node agent/bin/claude-control-agent.js` if you did not link it):
 
 | Command | |
 |---|---|

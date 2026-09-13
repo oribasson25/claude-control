@@ -102,15 +102,20 @@ export function Devices() {
           <pre className="snippet">{fresh.token}</pre>
 
           <p className="sub" style={{ marginTop: 16 }}>
-            On that machine, run:
+            On that machine, from your clone of this repo, run:
           </p>
-          <pre className="snippet">{`npx claude-control-agent init \\
+          <pre className="snippet">{`node agent/bin/claude-control-agent.js init \\
   --server ${origin} \\
   --token ${fresh.token}`}</pre>
           <p className="sub" style={{ marginTop: 10 }}>
             That writes the reporting hooks into <code>~/.claude/settings.json</code>{" "}
-            and starts the relay agent, which is what lets you send prompts back.
-            Run <code>npx claude-control-agent start</code> to keep it running.
+            and registers the relay agent to run in the background, which is what
+            lets you send prompts back.
+          </p>
+          <p className="sub">
+            To get a <code>claude-control-agent</code> command you can run from
+            anywhere, <code>cd agent && npm link</code> first. The package is not
+            on npm, so <code>npx claude-control-agent</code> will not resolve.
           </p>
 
           <button

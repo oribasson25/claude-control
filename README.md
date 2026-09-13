@@ -57,8 +57,13 @@ Then open <http://localhost:3000>, go to **Devices**, mint a token, and on the
 same machine run what the page shows you:
 
 ```bash
-npx claude-control-agent init --server http://localhost:3000 --token ccd_…
+node agent/bin/claude-control-agent.js init \
+  --server http://localhost:3000 --token ccd_…
 ```
+
+The agent is not published to npm, so `npx claude-control-agent` will not
+resolve. Run it from the checkout as above, or `cd agent && npm link` once to
+get a `claude-control-agent` command on your PATH.
 
 Restart your Claude sessions and they appear on the board.
 
