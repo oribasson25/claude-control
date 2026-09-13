@@ -1,0 +1,560 @@
+/*
+ * Mission-control palette. Dark by default because this screen is meant to sit
+ * open on a second monitor next to editors that are already dark, and status is
+ * carried by hue — one colour per state, used consistently everywhere.
+ */
+
+:root {
+  --bg: #0a0d13;
+  --bg-raised: #11151e;
+  --bg-sunken: #070a0f;
+  --border: #1e2532;
+  --border-strong: #2c3547;
+
+  --text: #e6ebf2;
+  --text-dim: #8b97ab;
+  --text-faint: #5a6577;
+
+  --working: #4a9eff;
+  --working-glow: rgba(74, 158, 255, 0.16);
+  --needs-you: #ff9f43;
+  --needs-you-glow: rgba(255, 159, 67, 0.16);
+  --done: #3ddc84;
+  --done-glow: rgba(61, 220, 132, 0.14);
+  --idle: #5a6577;
+  --idle-glow: rgba(90, 101, 119, 0.12);
+  --danger: #ff5c5c;
+  --accent: #7c6cff;
+
+  --radius: 12px;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--working);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- shell ---------- */
+
+.shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-block: 20px 64px;
+  padding-inline: 16px;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-right: auto;
+}
+
+.brand h1 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.brand .tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---------- counters ---------- */
+
+.counters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.counter b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.counter.is-hot {
+  border-color: var(--needs-you);
+  color: var(--needs-you);
+}
+.counter.is-hot b {
+  color: var(--needs-you);
+}
+
+/* ---------- status dot ---------- */
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--idle);
+}
+.dot[data-status="working"] {
+  background: var(--working);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.dot[data-status="needs_you"] {
+  background: var(--needs-you);
+  animation: pulse 0.9s ease-in-out infinite;
+}
+.dot[data-status="done"] {
+  background: var(--done);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none !important;
+  }
+}
+
+/* ---------- board ---------- */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 15px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card[data-status="working"] {
+  border-color: rgba(74, 158, 255, 0.35);
+  box-shadow: 0 0 0 1px var(--working-glow);
+}
+.card[data-status="needs_you"] {
+  border-color: var(--needs-you);
+  box-shadow: 0 0 0 3px var(--needs-you-glow);
+}
+.card[data-status="done"] {
+  border-color: rgba(61, 220, 132, 0.3);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.card-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.state-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.state-label[data-status="working"] {
+  color: var(--working);
+}
+.state-label[data-status="needs_you"] {
+  color: var(--needs-you);
+}
+.state-label[data-status="done"] {
+  color: var(--done);
+}
+
+.activity {
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-height: 20px;
+}
+
+.activity .spinner {
+  flex: none;
+  margin-top: 4px;
+}
+
+.meta-line {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quote {
+  font-size: 12px;
+  color: var(--text-dim);
+  border-left: 2px solid var(--border-strong);
+  padding-left: 9px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.card-foot .spacer {
+  margin-left: auto;
+}
+
+/* ---------- controls ---------- */
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--text-faint);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: var(--working);
+  border-color: var(--working);
+  color: #04080f;
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-faint);
+  padding: 4px 7px;
+}
+.btn.ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn.danger {
+  color: var(--danger);
+  border-color: rgba(255, 92, 92, 0.35);
+  background: transparent;
+}
+
+textarea,
+input[type="text"] {
+  font: inherit;
+  width: 100%;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+  resize: vertical;
+}
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--working);
+}
+textarea::placeholder,
+input::placeholder {
+  color: var(--text-faint);
+}
+
+/* Small switch used for the per-session prompt permission. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+  user-select: none;
+}
+.switch input {
+  appearance: none;
+  width: 26px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  position: relative;
+  transition: background 0.18s;
+  margin: 0;
+  cursor: pointer;
+  flex: none;
+}
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.18s, background 0.18s;
+}
+.switch input:checked {
+  background: rgba(124, 108, 255, 0.5);
+}
+.switch input:checked::after {
+  transform: translateX(11px);
+  background: var(--accent);
+}
+
+/* ---------- prompt box ---------- */
+
+.promptbox {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.promptbox .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+.queued-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.queued-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(124, 108, 255, 0.08);
+  border: 1px solid rgba(124, 108, 255, 0.25);
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+
+.queued-item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- misc ---------- */
+
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-dim);
+  grid-column: 1 / -1;
+}
+
+.empty h2 {
+  color: var(--text);
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.banner {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--bg-raised);
+}
+.banner.warn {
+  border-color: var(--needs-you);
+  color: var(--needs-you);
+}
+.banner.error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+code,
+pre {
+  font-family: var(--mono);
+}
+
+pre.snippet {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.panel .sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.device-row .name {
+  font-weight: 600;
+}
+
+/* A one-off spinner for "working" cards. */
+.spinner {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--working);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .board {
+    grid-template-columns: 1fr;
+  }
+  .brand {
+    width: 100%;
+  }
+}

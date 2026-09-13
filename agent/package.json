@@ -1,0 +1,14 @@
+{
+  "name": "claude-control-agent",
+  "version": "0.1.0",
+  "description": "Links a machine to a Claude Control dashboard: reports session status and delivers prompts sent from the web.",
+  "type": "module",
+  "bin": {
+    "claude-control-agent": "./bin/claude-control-agent.js"
+  },
+  "files": ["bin", "src", "README.md"],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
